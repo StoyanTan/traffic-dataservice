@@ -34,9 +34,7 @@ public class TrafficDao implements ITrafficDao {
 
         List<ParameterValueObject> objectResult = new ArrayList<>();
         for (Tuple tuple : resultList) {
-            if (tuple.get(0) == null) {
-                continue;
-            } else {
+            if (tuple.get(0) != null) {
                 ParameterValueObject object = new ParameterValueObject();
                 object.setParameter(tuple.get(0).toString());
                 object.setCount(tuple.get(1).toString());
@@ -88,7 +86,7 @@ public class TrafficDao implements ITrafficDao {
             cq.select(traffic)
                     .where(cb.equal(traffic.get(filter.getFilterCriteria()), filter.getValue()));
 
-            return Long.valueOf(em.createQuery(cq).getResultList().size());
+            return (long) em.createQuery(cq).getResultList().size();
         }
     }
 }

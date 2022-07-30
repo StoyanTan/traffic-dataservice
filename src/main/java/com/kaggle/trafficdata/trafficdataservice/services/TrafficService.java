@@ -1,41 +1,88 @@
 package com.kaggle.trafficdata.trafficdataservice.services;
 
+import java.util.List;
+
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.stereotype.Service;
 
-/*
- * A service for retrieving traffic incident data
- */
-public interface TrafficService {
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.kaggle.trafficdata.trafficdataservice.dao.TrafficDao;
+import com.kaggle.trafficdata.trafficdataservice.mapping.TrafficMapper;
+import com.kaggle.trafficdata.trafficdataservice.model.Filter;
+import com.kaggle.trafficdata.trafficdataservice.model.ParameterValueObject;
+import com.kaggle.trafficdata.trafficdataservice.model.TrafficIncidentREST;
 
-	/**
-	 * Returns incidents clustered by city as a JSON array with the structure
-	 * expected by d3.js
-	 * 
-	 * @return a JSON array with the clustered incidents
-	 */
-	@GetMapping("/")
-	public Response getClusteringByCity();
+@Service
+public class TrafficService implements ITrafficService {
 
-	/**
-	 * Returns incidents filtered by city and paginated
-	 * 
-	 * @param city the name of the city
-	 * @param page the page number
-	 * @return a JSON array with the filtered incident data
-	 */
-	@GetMapping("/city/{city}")
-	public Response getIncidentsByCity(@PathVariable String city, @RequestParam Integer page);
+    private static final String ERROR_MSG = "An error occurred during serialization: %s";
 
-	/**
-	 * Returns a single incident by its unique identifier
-	 * 
-	 * @param id the incident ID
-	 * @return a JSON response containing the incident data
-	 */
-	@GetMapping("/city/incidents/{id}")
-	public Response getIncidentsById(@PathVariable String id);
+    private final TrafficMapper trafficMapper;
+
+    private final TrafficDao dao;
+
+    private final ObjectMapper objectMapper;
+
+    public TrafficService(TrafficMapper trafficMapper, TrafficDao dao, ObjectMapper objectMapper){
+        this.trafficMapper = trafficMapper;
+        this.dao = dao;
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public Response getClusteringByCity() {
+        List<ParameterValueObject> result = dao.getClustering(new Filter("city", null));
+        ArrayNode arrayNode = objectMapper.createArrayNode();
+        objectMapper.writerWithDefaultPrettyPrinter();
+        ObjectNode objNode = objectMapper.createObjectNode();
+        objNode.putPOJO("children", result);
+        arrayNode.add(objNode);
+        return getResponse(objNode);
+    }
+
+    @Override
+    public Response getIncidentsByCity(String city, Integer page) {
+        Filter filter = new Filter("city", city);
+        int pageSize = 50;
+        Long count = dao.getCount(filter);
+        List<TrafficIncidentREST> result;
+        if (page == null) {
+            result = trafficMapper.mapTraffic(dao.getTraffic(filter, 0, pageSize));
+        } else {
+            int offset = (page - 1) * pageSize;
+            result = trafficMapper.mapTraffic(dao.getTraffic(filter, offset, pageSize));
+        }
+        objectMapper.writerWithDefaultPrettyPrinter();
+        ObjectNode objNode = objectMapper.createObjectNode();
+        objNode.putPOJO("items", result);
+        objNode.put("count", count);
+        return getResponse(objNode);
+    }
+
+    @Override
+    public Response getIncidentsById(String id) {
+        Filter filter = new Filter("id", id);
+        TrafficIncidentREST result = trafficMapper.mapTraffic(dao.getIncidentById(filter));
+        objectMapper.writerWithDefaultPrettyPrinter();
+        return getResponse(result);
+    }
+
+    private Response getResponse(Object objValue) {
+        String jsonResult;
+        try {
+            jsonResult = objectMapper.writeValueAsString(objValue);
+        } catch (JsonProcessingException e) {
+            // TODO log error
+            return Response.serverError()
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .entity(String.format(ERROR_MSG, e.getMessage()))
+                    .build();
+        }
+        return Response.ok(jsonResult).header("Access-Control-Allow-Origin", "*").build();
+    }
 }

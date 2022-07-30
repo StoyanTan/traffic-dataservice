@@ -19,7 +19,7 @@ public interface ITrafficDao {
 	 * @param pageSize the page size
 	 * @return a list of {@link TrafficIncident} data
 	 */
-	public List<TrafficIncident> getTraffic(Filter filter, int offset, int pageSize);
+	List<TrafficIncident> getTraffic(Filter filter, int offset, int pageSize);
 
 	/**
 	 * Returns the count of the filtered results (utility method used for
@@ -28,7 +28,7 @@ public interface ITrafficDao {
 	 * @param filter the filter object
 	 * @return the number of filtered results
 	 */
-	public Long getCount(Filter filter);
+	Long getCount(Filter filter);
 
 	/**
 	 * Returns the initial clustering key-value pairs for the overview
@@ -36,7 +36,7 @@ public interface ITrafficDao {
 	 * @param filter the filter object
 	 * @return a list of {@link ParameterValueObject} used for the initial overview
 	 */
-	public List<ParameterValueObject> getClustering(Filter filter);
+	List<ParameterValueObject> getClustering(Filter filter);
 
 	/**
 	 * Returns detailed data for a specific entry with a link to the
@@ -45,5 +45,5 @@ public interface ITrafficDao {
 	 * @param filter the filter object
 	 * @return a complete {@link TrafficIncident} result data
 	 */
-	public TrafficIncident getIncidentById(Filter filter);
+	TrafficIncident getIncidentById(Filter filter);
 }
