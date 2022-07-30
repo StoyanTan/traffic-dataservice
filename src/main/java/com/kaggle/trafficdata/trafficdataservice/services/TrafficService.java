@@ -5,6 +5,8 @@ import java.util.List;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,6 +22,7 @@ import com.kaggle.trafficdata.trafficdataservice.model.TrafficIncidentREST;
 @Service
 public class TrafficService implements ITrafficService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrafficService.class);
     private static final String ERROR_MSG = "An error occurred during serialization: %s";
 
     private final TrafficMapper trafficMapper;
@@ -77,7 +80,7 @@ public class TrafficService implements ITrafficService {
         try {
             jsonResult = objectMapper.writeValueAsString(objValue);
         } catch (JsonProcessingException e) {
-            // TODO log error
+            LOGGER.error(e.getMessage(), e);
             return Response.serverError()
                     .type(MediaType.APPLICATION_JSON_TYPE)
                     .entity(String.format(ERROR_MSG, e.getMessage()))
